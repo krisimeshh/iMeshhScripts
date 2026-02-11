@@ -1,0 +1,16 @@
+schema_version = "1.0.0"
+
+id = "cursor_to_bounds"
+version = "1.3.0"
+name = "Cursor To Bounds"
+tagline = "Place 3D cursor at bounding box center and optionally set origin"
+maintainer = "Kris / iMeshh <kris@imeshh.com>"
+type = "add-on"
+
+website = "https://github.com/krisimeshh/iMeshhScripts"
+
+tags = ["3D View"]
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]

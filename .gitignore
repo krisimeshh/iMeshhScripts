@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+packages/
+_site/
+.DS_Store
+Thumbs.db
+.claude/
+CLAUDE.md
