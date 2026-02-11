@@ -160,7 +160,7 @@ class IMESHH_PT_cursor_tools(bpy.types.Panel):
     bl_idname = "IMESHH_PT_cursor_tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "iMeshh"
+    bl_category = "iMeshhTools"
 
     def draw(self, context):
         layout = self.layout
