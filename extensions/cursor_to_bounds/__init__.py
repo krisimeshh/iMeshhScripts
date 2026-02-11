@@ -2,10 +2,81 @@ import bpy
 from mathutils import Vector
 
 
+def get_combined_bounds(objs, bottom=False):
+    """Get combined bounding box center (or bottom center) for multiple objects."""
+    big = 1e10
+    mins = Vector((big, big, big))
+    maxs = Vector((-big, -big, -big))
+
+    for obj in objs:
+        mat = obj.matrix_world
+        for v in obj.bound_box:
+            wp = mat @ Vector(v)
+            mins.x = min(mins.x, wp.x)
+            mins.y = min(mins.y, wp.y)
+            mins.z = min(mins.z, wp.z)
+            maxs.x = max(maxs.x, wp.x)
+            maxs.y = max(maxs.y, wp.y)
+            maxs.z = max(maxs.z, wp.z)
+
+    center = (mins + maxs) * 0.5
+
+    if bottom:
+        return Vector((center.x, center.y, mins.z))
+    return center
+
+
+def get_single_bounds(obj, bottom=False):
+    """Get bounding box center (or bottom center) for a single object."""
+    big = 1e10
+    mins = Vector((big, big, big))
+    maxs = Vector((-big, -big, -big))
+
+    mat = obj.matrix_world
+    for v in obj.bound_box:
+        wp = mat @ Vector(v)
+        mins.x = min(mins.x, wp.x)
+        mins.y = min(mins.y, wp.y)
+        mins.z = min(mins.z, wp.z)
+        maxs.x = max(maxs.x, wp.x)
+        maxs.y = max(maxs.y, wp.y)
+        maxs.z = max(maxs.z, wp.z)
+
+    center = (mins + maxs) * 0.5
+
+    if bottom:
+        return Vector((center.x, center.y, mins.z))
+    return center
+
+
+class IMESHH_OT_cursor_to_combined_bounds(bpy.types.Operator):
+    """Move 3D cursor to the combined bounding box center of all selected objects"""
+    bl_idname = "imeshh.cursor_to_combined_bounds"
+    bl_label = "Cursor to Combined Bounds Center"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return bool(context.selected_objects)
+
+    def execute(self, context):
+        objs = [o for o in context.selected_objects if getattr(o, "bound_box", None)]
+
+        if not objs:
+            self.report({"WARNING"}, "No selected objects with bounding boxes")
+            return {"CANCELLED"}
+
+        target = get_combined_bounds(objs)
+        context.scene.cursor.location = target
+        self.report({"INFO"}, f"Cursor moved to combined bounds center")
+
+        return {"FINISHED"}
+
+
 class IMESHH_OT_cursor_to_bounds(bpy.types.Operator):
-    """Place 3D cursor at combined bounding box center of selected objects and set origin"""
+    """Place 3D cursor at bounding box center per object and optionally set origin"""
     bl_idname = "imeshh.cursor_to_bounds"
-    bl_label = "Cursor to Bounds of Selection"
+    bl_label = "Cursor to Bounds & Set Origin"
     bl_options = {"REGISTER", "UNDO"}
 
     set_origin: bpy.props.BoolProperty(
@@ -30,53 +101,25 @@ class IMESHH_OT_cursor_to_bounds(bpy.types.Operator):
     def poll(cls, context):
         return bool(context.selected_objects)
 
-    def get_bounds_center(self, obj, bottom=False):
-        """Get bounding box center (or bottom center) for a single object"""
-        big = 1e10
-        mins = Vector((big, big, big))
-        maxs = Vector((-big, -big, -big))
-
-        mat = obj.matrix_world
-        for v in obj.bound_box:
-            wp = mat @ Vector(v)
-            mins.x = min(mins.x, wp.x)
-            mins.y = min(mins.y, wp.y)
-            mins.z = min(mins.z, wp.z)
-            maxs.x = max(maxs.x, wp.x)
-            maxs.y = max(maxs.y, wp.y)
-            maxs.z = max(maxs.z, wp.z)
-
-        center = (mins + maxs) * 0.5
-
-        if bottom:
-            return Vector((center.x, center.y, mins.z))
-        return center
-
     def execute(self, context):
-        objs = context.selected_objects
-        objs = [o for o in objs if getattr(o, "bound_box", None)]
+        objs = [o for o in context.selected_objects if getattr(o, "bound_box", None)]
 
         if not objs:
             self.report({"WARNING"}, "No selected objects with bounding boxes")
             return {"CANCELLED"}
 
-        # Store original cursor location
         original_cursor = context.scene.cursor.location.copy()
 
         if self.set_origin:
-            # Process each object individually
             for obj in objs:
-                target = self.get_bounds_center(obj, self.bottom_center)
+                target = get_single_bounds(obj, self.bottom_center)
 
-                # Move cursor to this object's target
                 context.scene.cursor.location = target
 
-                # Deselect all, select only this object
                 bpy.ops.object.select_all(action='DESELECT')
                 obj.select_set(True)
                 context.view_layer.objects.active = obj
 
-                # Set origin to cursor
                 bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
 
                 if self.move_to_world_origin:
@@ -93,28 +136,7 @@ class IMESHH_OT_cursor_to_bounds(bpy.types.Operator):
                 context.scene.cursor.location = original_cursor
                 self.report({"INFO"}, f"Origins set to {'bottom center' if self.bottom_center else 'center'}")
         else:
-            # Just move cursor to combined bounds center
-            big = 1e10
-            mins = Vector((big, big, big))
-            maxs = Vector((-big, -big, -big))
-
-            for o in objs:
-                mat = o.matrix_world
-                for v in o.bound_box:
-                    wp = mat @ Vector(v)
-                    mins.x = min(mins.x, wp.x)
-                    mins.y = min(mins.y, wp.y)
-                    mins.z = min(mins.z, wp.z)
-                    maxs.x = max(maxs.x, wp.x)
-                    maxs.y = max(maxs.y, wp.y)
-                    maxs.z = max(maxs.z, wp.z)
-
-            center = (mins + maxs) * 0.5
-            if self.bottom_center:
-                target = Vector((center.x, center.y, mins.z))
-            else:
-                target = center
-
+            target = get_combined_bounds(objs, self.bottom_center)
             context.scene.cursor.location = target
             self.report({"INFO"}, f"Cursor moved to {target}")
 
@@ -133,26 +155,32 @@ class IMESHH_OT_cursor_to_bounds(bpy.types.Operator):
         col.prop(self, "move_to_world_origin")
 
 
-class IMESHH_PT_cleaner_cursor(bpy.types.Panel):
+class IMESHH_PT_cursor_tools(bpy.types.Panel):
     bl_label = "Cursor Tools"
-    bl_idname = "IMESHH_PT_cleaner_cursor"
+    bl_idname = "IMESHH_PT_cursor_tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "i-Meshh Cleaner"
+    bl_category = "iMeshh"
 
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
         col.operator(
-            "imeshh.cursor_to_bounds",
-            text="Cursor to Bounds of Selection",
+            "imeshh.cursor_to_combined_bounds",
+            text="Cursor to Combined Bounds",
             icon="PIVOT_CURSOR",
+        )
+        col.operator(
+            "imeshh.cursor_to_bounds",
+            text="Cursor to Bounds & Set Origin",
+            icon="OBJECT_ORIGIN",
         )
 
 
 classes = (
+    IMESHH_OT_cursor_to_combined_bounds,
     IMESHH_OT_cursor_to_bounds,
-    IMESHH_PT_cleaner_cursor,
+    IMESHH_PT_cursor_tools,
 )
 
 
