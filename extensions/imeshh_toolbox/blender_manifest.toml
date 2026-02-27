@@ -1,9 +1,9 @@
 schema_version = "1.0.0"
 
-id = "cursor_to_bounds"
-version = "1.4.1"
-name = "Cursor To Bounds"
-tagline = "Place 3D cursor at bounding box center and optionally set origin"
+id = "imeshh_toolbox"
+version = "1.0.0"
+name = "iMeshh Toolbox"
+tagline = "A collection of utility scripts for Blender by iMeshh"
 maintainer = "Kris / iMeshh <kris@imeshh.com>"
 type = "add-on"
 

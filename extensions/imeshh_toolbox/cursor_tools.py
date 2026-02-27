@@ -2,6 +2,10 @@ import bpy
 from mathutils import Vector
 
 
+# ---------------------------------------------------------------------------
+# Utility helpers
+# ---------------------------------------------------------------------------
+
 def get_combined_bounds(objs, bottom=False):
     """Get combined bounding box center (or bottom center) for multiple objects."""
     big = 1e10
@@ -48,6 +52,10 @@ def get_single_bounds(obj, bottom=False):
         return Vector((center.x, center.y, mins.z))
     return center
 
+
+# ---------------------------------------------------------------------------
+# Operators
+# ---------------------------------------------------------------------------
 
 class IMESHH_OT_cursor_to_combined_bounds(bpy.types.Operator):
     """Move 3D cursor to the combined bounding box center of all selected objects"""
@@ -155,12 +163,18 @@ class IMESHH_OT_cursor_to_bounds(bpy.types.Operator):
         col.prop(self, "move_to_world_origin")
 
 
+# ---------------------------------------------------------------------------
+# Sub-panel
+# ---------------------------------------------------------------------------
+
 class IMESHH_PT_cursor_tools(bpy.types.Panel):
     bl_label = "Cursor Tools"
     bl_idname = "IMESHH_PT_cursor_tools"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "iMeshhTools"
+    bl_category = "iMeshh"
+    bl_parent_id = "IMESHH_PT_toolbox"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -177,18 +191,12 @@ class IMESHH_PT_cursor_tools(bpy.types.Panel):
         )
 
 
+# ---------------------------------------------------------------------------
+# Registration list
+# ---------------------------------------------------------------------------
+
 classes = (
     IMESHH_OT_cursor_to_combined_bounds,
     IMESHH_OT_cursor_to_bounds,
     IMESHH_PT_cursor_tools,
 )
-
-
-def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
-
-
-def unregister():
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
